@@ -102,9 +102,27 @@ def signup_for_activity(activity_name: str, email: str):
     activity = activities[activity_name]
 
     # Validate that student is not already signed up
-    if email in activity["participants"]:
+    normalized_email = email.strip().lower()
+    if normalized_email in map(str.lower, activity["participants"]):
         raise HTTPException(status_code=400, detail="Student already signed up for this activity")
 
     # Add student
-    activity["participants"].append(email)
-    return {"message": f"Signed up {email} for {activity_name}"}
+    activity["participants"].append(normalized_email)
+    return {"message": f"Signed up {normalized_email} for {activity_name}"}
+
+
+@app.delete("/activities/{activity_name}/participants")
+def remove_participant(activity_name: str, email: str):
+    """Unregister a student from an activity"""
+    if activity_name not in activities:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    activity = activities[activity_name]
+    normalized_email = email.strip().lower()
+
+    if normalized_email not in map(str.lower, activity["participants"]):
+        raise HTTPException(status_code=404, detail="Student is not signed up for this activity")
+
+    # Keep original casing if present, remove matching email
+    activity["participants"] = [p for p in activity["participants"] if p.strip().lower() != normalized_email]
+    return {"message": f"Unregistered {normalized_email} from {activity_name}"}
